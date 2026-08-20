@@ -195,7 +195,7 @@ export default function CheckoutPage() {
 
       {stage === 'form' && (
         <form onSubmit={handlePay}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,340px)', gap: 28, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 28, alignItems: 'start' }}>
             {/* Left — payment form */}
             <div>
               {/* Card visual */}
@@ -261,18 +261,17 @@ export default function CheckoutPage() {
                     </div>
                     {errors.cardName && <div className="input-err">{errors.cardName}</div>}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div className="input-group">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
                       <label className="input-label">Expiry</label>
                       <div className={`input-wrap ${errors.expiry ? 'error' : ''}`}>
                         <input className="card-input" value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))} placeholder="MM/YY" maxLength={5} inputMode="numeric" autoComplete="cc-exp" />
                       </div>
                       {errors.expiry && <div className="input-err">{errors.expiry}</div>}
                     </div>
-                    <div className="input-group">
-                      <label className="input-label">CVV</label>
+                    <div className="input-group" style={{ marginBottom: 0, minWidth: 0 }}>
+                      <label className="input-label">CVV / CVC</label>
                       <div className={`input-wrap ${errors.cvv ? 'error' : ''}`}>
-                        <Lock size={14} color="var(--c-text-mute)" />
                         <input className="card-input" value={cvv} onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" inputMode="numeric" autoComplete="cc-csc" type="password" />
                       </div>
                       {errors.cvv && <div className="input-err">{errors.cvv}</div>}
@@ -285,51 +284,17 @@ export default function CheckoutPage() {
                 </>
               )}
 
-              {/* Recurring toggle */}
-              <div className="card" style={{ marginBottom: 20, background: recurring ? 'rgba(255,210,63,0.05)' : undefined, borderColor: recurring ? 'rgba(255,210,63,0.35)' : undefined }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: recurring ? 16 : 0 }}>
-                  <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <RotateCcw size={14} style={{ color: 'var(--c-gold)' }} /> Make this a standing / recurring booking
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--c-text-mute)', marginTop: 2 }}>Automatically reserve this lane at the same time every week or fortnight</div>
+              {/* Recurring summary badge (selected on Booking Board) */}
+              {recurring && (
+                <div style={{ background: 'rgba(255,210,63,0.08)', border: '1px solid rgba(255,210,63,0.3)', borderRadius: 10, padding: 14, marginBottom: 20 }}>
+                  <div style={{ color: 'var(--c-gold)', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <RotateCcw size={15} /> Standing / Recurring Order Active
                   </div>
-                </label>
-                {recurring && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">Frequency</label>
-                      <div className="input-wrap">
-                        <select value={recurFreq} onChange={e => setRecurFreq(e.target.value)}>
-                          <option value="weekly">Weekly</option>
-                          <option value="fortnightly">Fortnightly</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="input-group" style={{ marginBottom: 0 }}>
-                      <label className="input-label">For how many weeks</label>
-                      <div className="input-wrap">
-                        <select value={recurWeeks} onChange={e => setRecurWeeks(Number(e.target.value))}>
-                          {[4,6,8,10,12].map(n => <option key={n} value={n}>{n} weeks</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{ gridColumn: '1/-1' }}>
-                      <div style={{ fontSize: 12, color: 'var(--c-text-mute)', marginBottom: 8 }}>
-                        {recurDates.length} additional {recurFreq} sessions will be booked:
-                      </div>
-                      <div className="recur-preview">
-                        <div className="recur-row"><span className="date">{dateKey}</span><span className="status badge badge-gold">Today (base)</span></div>
-                        {recurDates.slice(0, 6).map(d => (
-                          <div className="recur-row" key={d}><span className="date">{d}</span><span className="status">Recurring</span></div>
-                        ))}
-                        {recurDates.length > 6 && <div className="recur-row" style={{ color: 'var(--c-text-faint)', fontSize: 12 }}>+{recurDates.length - 6} more dates…</div>}
-                      </div>
-                    </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-sub)', marginTop: 4 }}>
+                    {recurFreq} auto-renewal for {recurWeeks} weeks selected on Booking Board.
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: 'var(--c-text-faint)', marginBottom: 20 }}>
                 <Lock size={13} /> Payments are secured with 256-bit SSL encryption. Card details are never stored on our servers.
@@ -367,7 +332,7 @@ export default function CheckoutPage() {
                 {recurring && <div style={{ color: 'var(--c-gold)', marginTop: 4 }}>↻ {recurFreq} for {recurWeeks} weeks</div>}
               </div>
 
-              <button type="submit" className="btn btn-primary w-full btn-lg" style={{ display: 'flex', gap: 8 }}>
+              <button id="demo-pay-submit-btn" type="submit" className="btn btn-primary w-full btn-lg" style={{ display: 'flex', gap: 8 }}>
                 {isFree ? <><Check size={16} /> Confirm free booking</> : <><Lock size={15} /> Pay {`£${(isFree ? 0 : totalPrice * (recurring ? recurDates.length + 1 : 1)).toFixed(2)}`} securely</>}
               </button>
               <button type="button" className="btn btn-ghost w-full btn-sm" style={{ marginTop: 10 }} onClick={() => navigate('/app/book')}>← Back to booking board</button>

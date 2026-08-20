@@ -19,9 +19,7 @@ import AppShell           from './components/layout/AppShell.jsx';
 
 function AppRoutes() {
   return (
-    <>
-      <DemoBanner />
-      <Routes>
+    <Routes>
         <Route path="/" element={<PresentationPage />} />
         {/* Auth is standalone — outside the protected shell */}
         <Route path="/app/auth" element={<AuthPage />} />
@@ -38,7 +36,6 @@ function AppRoutes() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
   );
 }
 

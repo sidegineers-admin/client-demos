@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, RotateCcw, CalendarDays, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useApp } from '../../store/AppContext.jsx';
+import { useDemo } from '../../store/DemoContext.jsx';
 import { storage, uid } from '../../store/storage.js';
 
 function hoursUntilBooking(dateKey, timeStr) {
@@ -34,6 +35,13 @@ export default function MyBookingsPage() {
 
   const upcoming = myBookings.filter(b => b.date > today || (b.date === today && parseInt(b.time) > nowH));
   const past     = myBookings.filter(b => b.date < today || (b.date === today && parseInt(b.time) <= nowH));
+
+  const { demoOpenCancelModal } = useDemo() || {};
+  React.useEffect(() => {
+    if (demoOpenCancelModal && upcoming.length > 0) {
+      setCancelTarget(upcoming[0]);
+    }
+  }, [demoOpenCancelModal, upcoming]);
 
   // Group by recurringId
   const groups = {};
@@ -118,7 +126,7 @@ export default function MyBookingsPage() {
               {eligible24h ? 'Notice > 24h: 100% Refundable' : 'Notice < 24h: Late Policy applies'}
             </div>
             <div className="booking-actions" style={{ marginTop: 0 }}>
-              <button className="btn btn-ghost btn-sm" style={{ color: 'var(--c-red)', borderColor: 'rgba(226,74,74,0.3)' }} onClick={() => setCancelTarget(b)}>
+              <button id="demo-cancel-btn-0" className="btn btn-ghost btn-sm" style={{ color: 'var(--c-red)', borderColor: 'rgba(226,74,74,0.3)' }} onClick={() => setCancelTarget(b)}>
                 <Trash2 size={13} /> Cancel session
               </button>
             </div>
@@ -266,7 +274,7 @@ export default function MyBookingsPage() {
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setCancelTarget(null)} disabled={cancelBusy}>Keep Booking</button>
-                <button type="submit" className="btn btn-danger" style={{ flex: 1, display: 'flex', gap: 6, justifyContent: 'center' }} disabled={cancelBusy}>
+                <button id="demo-cancel-modal-submit-btn" type="submit" className="btn btn-danger" style={{ flex: 1, display: 'flex', gap: 6, justifyContent: 'center' }} disabled={cancelBusy}>
                   {cancelBusy ? 'Processing Reversal…' : 'Confirm & Reverse Payment'}
                 </button>
               </div>

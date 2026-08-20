@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { Mail, Lock, User, ShieldCheck, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../../store/AppContext.jsx';
 import { storage, hashPassword, checkLogin, uid } from '../../store/storage.js';
+import DemoBanner from '../../components/demo/DemoBanner.jsx';
 
 const ADMIN_CODE = 'HURNBRIDGE-STAFF';
 
@@ -145,8 +146,11 @@ export default function AuthPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--c-bg-dark)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-      <div style={{ maxWidth: 420, width: '100%', padding: '40px 20px 80px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--c-bg-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+      <div style={{ width: '100%', maxWidth: 640 }}>
+        <DemoBanner />
+      </div>
+      <div style={{ maxWidth: 420, width: '100%', padding: '20px 20px 80px' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div className="display" style={{ fontSize: 36, lineHeight: 1 }}>
             THE DORSET <span className="text-gold">CRICKET CENTRE</span>
@@ -282,7 +286,7 @@ export default function AuthPage() {
               {error && <div className="input-err" style={{ marginTop: 8, marginBottom: 4 }}>{error}</div>}
               {info && <div style={{ fontSize: 12, color: 'var(--c-green)', marginTop: 8 }}>{info}</div>}
 
-              <button className="btn btn-primary w-full" style={{ marginTop: 20 }} type="submit" disabled={busy}>
+              <button id="demo-login-btn" className="btn btn-primary w-full" style={{ marginTop: 20 }} type="submit" disabled={busy}>
                 {busy ? 'Please wait…' : tab === 'login' ? 'Log in' : tab === 'register' ? 'Create account' : 'Reset password'}
               </button>
             </form>

@@ -4,6 +4,8 @@ import { Bell, LogOut, ShieldCheck, CalendarDays, BookOpen, RotateCcw, Star, Loa
 import { useApp } from '../../store/AppContext.jsx';
 import { storage } from '../../store/storage.js';
 import Toast from '../ui/Toast.jsx';
+import DemoSpotlight from '../demo/DemoSpotlight.jsx';
+import PresenterHeaderToolbar from '../demo/PresenterHeaderToolbar.jsx';
 
 export default function AppShell() {
   const { session, setSession, authChecked, toast, notifications, markAllRead, unreadCount } = useApp();
@@ -101,9 +103,13 @@ export default function AppShell() {
             </span>
             {session.ecbCoach && <span className="badge badge-green">ECB Coach · 50% Off</span>}
           </div>
-          <button className="logout-btn" onClick={handleLogout}>
-            <LogOut size={12} /> Log out
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <PresenterHeaderToolbar />
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={12} /> Log out
+            </button>
+          </div>
         </div>
 
         {session.role === 'pending_admin' && (
@@ -126,10 +132,11 @@ export default function AppShell() {
         </nav>
       </header>
 
-      <main style={{ flex: 1 }}>
+      <main className="app-main-body">
         <Outlet />
       </main>
 
+      <DemoSpotlight />
       {toast && <Toast text={toast.text} type={toast.type} />}
     </div>
   );

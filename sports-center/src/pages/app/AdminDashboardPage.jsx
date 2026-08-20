@@ -67,8 +67,14 @@ export default function AdminDashboardPage() {
     loadUsers();
   }, []);
 
-  if (session?.role !== 'admin') {
-    navigate('/app/book', { replace: true }); return null;
+  useEffect(() => {
+    if (session && session.role !== 'admin') {
+      navigate('/app/book', { replace: true });
+    }
+  }, [session, navigate]);
+
+  if (!session || session.role !== 'admin') {
+    return null;
   }
 
   const revenueData = useMemo(() => makeRevenueData(bookings, settings.pricePerHour || 12), [bookings, settings]);
@@ -306,7 +312,7 @@ export default function AdminDashboardPage() {
                       <td style={{ fontSize: 12, color: 'var(--c-text-mute)' }}>{new Date(u.createdAt).toLocaleDateString('en-GB')}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <button className="btn btn-primary btn-sm" style={{ display: 'flex', gap: 6, padding: '4px 10px' }} onClick={() => approveUser(u.id)}>
+                          <button id="demo-approve-alex-btn" className="btn btn-primary btn-sm" style={{ display: 'flex', gap: 6, padding: '4px 10px' }} onClick={() => approveUser(u.id)}>
                             <UserCheck size={13} /> Approve
                           </button>
                           <button className="btn btn-ghost btn-sm" style={{ display: 'flex', gap: 6, padding: '4px 10px', color: 'var(--c-red)' }} onClick={() => rejectUser(u.id)}>

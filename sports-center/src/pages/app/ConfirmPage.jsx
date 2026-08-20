@@ -57,7 +57,7 @@ export default function ConfirmPage() {
       <div className="booking-ref" style={{ margin: '20px 0 8px' }}>{ref}</div>
       <div style={{ fontSize: 12, color: 'var(--c-text-mute)', marginBottom: 8 }}>Booking reference</div>
 
-      <div className="qr-wrap">
+      <div id="demo-qr-wrap" className="qr-wrap">
         <QRCodeSVG value={ref} size={140} bgColor="#ffffff" fgColor="#0B3D2E" />
       </div>
       <div style={{ fontSize: 12, color: 'var(--c-text-mute)', marginBottom: 24 }}>Show this QR at the centre</div>

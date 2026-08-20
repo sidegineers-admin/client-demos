@@ -47,13 +47,19 @@
    RESET
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; max-width: 100vw; overflow-x: hidden; }
 body {
   font-family: var(--font-body);
   background: var(--c-bg-dark);
   color: var(--c-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+#root, .app-shell, .pres {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 button { cursor: pointer; font-family: var(--font-body); }
 input, textarea, select { font-family: var(--font-body); }
@@ -559,7 +565,7 @@ img { max-width: 100%; }
 .admin-table tr:hover td { background: rgba(247,245,240,0.02); }
 .admin-table-wrap {
   background: var(--c-bg-card); border: 1px solid var(--c-border);
-  border-radius: var(--r-md); overflow: hidden;
+  border-radius: var(--r-md); overflow-x: auto; max-width: 100%;
 }
 
 /* ============================================================
@@ -910,20 +916,77 @@ img { max-width: 100%; }
 .demo-ctrl-exit { background: var(--c-red-dim); color: var(--c-red); border-color: rgba(226,74,74,0.3); }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE & MOBILE UX OPTIMIZATIONS
    ============================================================ */
+.app-main-body {
+  flex: 1;
+  padding-bottom: 160px; /* Safe distance above fixed bottom cart bar & demo banner */
+}
+
+.modal {
+  width: min(520px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .app-header-top {
+    padding: 12px 14px 8px;
+  }
+  .app-wordmark {
+    font-size: 22px;
+  }
+  .app-acctbar {
+    padding: 6px 14px;
+    font-size: 11.5px;
+  }
+  .app-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding: 0 10px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 7px 11px;
+  }
+  .date-strip {
+    padding: 10px 12px;
+    gap: 4px;
+  }
+  .date-btn {
+    min-width: 48px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  .cart-bar {
+    padding: 12px 14px max(14px, env(safe-area-inset-bottom));
+  }
+  .admin-page, .my-bookings-page, .checkout-page, .membership-page, .recurring-page, .confirm-page {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
 @media (max-width: 640px) {
   .checkout-grid { grid-template-columns: 1fr; }
   .problem-split { grid-template-columns: 1fr; }
-  .cart-bar { flex-direction: column; align-items: stretch; }
+  .cart-bar { flex-direction: column; align-items: stretch; gap: 10px; }
   .cart-actions { justify-content: stretch; }
   .cart-actions .btn { flex: 1; }
-  .pres-hero-stats { gap: 24px; }
-  .admin-tabs { overflow-x: auto; }
-  .demo-banner-body { flex-direction: column; align-items: stretch; }
-  .demo-right { justify-content: space-between; }
+  .pres-hero-stats { gap: 20px; }
+  .admin-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .demo-banner-body { flex-direction: column; align-items: stretch; gap: 8px; }
+  .demo-right { justify-content: space-between; width: 100%; }
 }
 @media (max-width: 480px) {
   .pres-nav-links .pres-nav-link { display: none; }
+  .payment-card-visual { padding: 16px; min-height: 150px; }
+  .card-number-display { font-size: 14px; letter-spacing: 0.1em; }
 }
+
+
 

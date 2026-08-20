@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, X, Loader2, ShieldCheck, CalendarOff, Ban, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, CalendarOff, Ban, SlidersHorizontal, LayoutGrid, ListFilter, Clock, Check, Zap, Filter, RotateCcw } from 'lucide-react';
 import { useApp } from '../../store/AppContext.jsx';
+import { useDemo } from '../../store/DemoContext.jsx';
 import { storage, uid } from '../../store/storage.js';
 
 function toDateKey(d) { return d.toISOString().slice(0, 10); }
@@ -23,7 +24,7 @@ function isPastSlot(dateKey, time, todayKey, nowHour) {
 }
 
 export default function BookingBoardPage() {
-  const { session, bookings, setBookings, closedDates, setClosedDates, myIds, setMyIds, settings, showToast, SPORTS, TIMES } = useApp();
+  const { session, bookings, setBookings, closedDates, setClosedDates, myIds, settings, showToast, SPORTS, TIMES } = useApp();
   const navigate = useNavigate();
 
   const [windowStart, setWindowStart] = useState(startOfToday);
@@ -36,6 +37,11 @@ export default function BookingBoardPage() {
   const [closeReason, setCloseReason] = useState('');
   const [closeBusy, setCloseBusy] = useState(false);
 
+  // Mobile UX view state
+  const [viewMode, setViewMode] = useState(() => window.innerWidth < 768 ? 'list' : 'grid'); // 'list' | 'grid'
+  const [filterLane, setFilterLane] = useState('ALL'); // 'ALL' | specific lane
+  const [filterTimeOfDay, setFilterTimeOfDay] = useState('ALL'); // 'ALL' | 'morning' | 'afternoon' | 'evening'
+
   // Range block modal state
   const [rangeModal, setRangeModal] = useState(false);
   const [rangeLane, setRangeLane]   = useState('Lane 1');
@@ -43,6 +49,26 @@ export default function BookingBoardPage() {
   const [rangeTo, setRangeTo]       = useState(toDateKey(new Date()));
   const [rangeReason, setRangeReason] = useState('');
   const [rangeBusy, setRangeBusy]   = useState(false);
+
+  const { demoPreselectSlot, demoSetRecurring, demoOpenRangeModal } = useDemo() || {};
+
+  React.useEffect(() => {
+    if (demoPreselectSlot) {
+      setSelection([{ key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' }]);
+    }
+  }, [demoPreselectSlot]);
+
+  React.useEffect(() => {
+    if (demoSetRecurring) {
+      setRecurring(true);
+    }
+  }, [demoSetRecurring]);
+
+  React.useEffect(() => {
+    if (demoOpenRangeModal) {
+      setRangeModal(true);
+    }
+  }, [demoOpenRangeModal]);
 
   const sport = SPORTS[0];
   const dateKey = toDateKey(selectedDate);
@@ -92,11 +118,26 @@ export default function BookingBoardPage() {
     return price;
   }
 
+  // Recurring standing order state on booking board
+  const [recurring, setRecurring]   = useState(false);
+  const [recurFreq, setRecurFreq]   = useState('weekly');
+  const [recurWeeks, setRecurWeeks] = useState(8);
+
   const totalPrice = selection.length * getSlotPrice();
 
   function goToCheckout() {
     if (!selection.length) return;
-    sessionStorage.setItem('dcc_pending', JSON.stringify({ selection, dateKey, sportId: sport.id, sportName: sport.name, totalPrice }));
+    const finalTotal = totalPrice * (recurring ? recurWeeks : 1);
+    sessionStorage.setItem('dcc_pending', JSON.stringify({
+      selection,
+      dateKey,
+      sportId: sport.id,
+      sportName: sport.name,
+      totalPrice: finalTotal,
+      recurring,
+      recurFreq,
+      recurWeeks,
+    }));
     navigate('/app/checkout');
   }
 
@@ -145,7 +186,6 @@ export default function BookingBoardPage() {
         const dk = currDate.toISOString().slice(0, 10);
         for (const lane of targetLanes) {
           for (const t of TIMES) {
-            // only add if not already booked
             const exists = current.some(b => b.date === dk && b.unit === lane && b.time === t);
             if (!exists) {
               newBlocks.push({
@@ -172,7 +212,7 @@ export default function BookingBoardPage() {
       setBookings(merged);
       setRangeModal(false);
       showToast(`Blocked ${newBlocks.length} slot(s) across date range.`);
-    } catch (e) {
+    } catch {
       showToast('Could not apply lane blocks.', 'error');
     }
     setRangeBusy(false);
@@ -189,9 +229,69 @@ export default function BookingBoardPage() {
     } catch { showToast('Could not reopen.', 'error'); }
   }
 
+  // Filter slots for Mobile Slot Cards View
+  const listSlots = useMemo(() => {
+    const list = [];
+    const unitsToInclude = filterLane === 'ALL' ? sport.units : [filterLane];
+    
+    unitsToInclude.forEach(unit => {
+      TIMES.forEach(t => {
+        const h = parseInt(t.split(':')[0], 10);
+        if (filterTimeOfDay === 'morning' && (h < 7 || h >= 12)) return;
+        if (filterTimeOfDay === 'afternoon' && (h < 12 || h >= 17)) return;
+        if (filterTimeOfDay === 'evening' && h < 17) return;
+
+        const existing = isBooked(unit, t);
+        const past = isPastSlot(dateKey, t, todayKey, nowHour);
+        const selected = selection.some(s => s.unit === unit && s.time === t);
+        const isMine = existing && myIds.includes(existing.id);
+
+        list.push({
+          unit,
+          time: t,
+          existing,
+          past,
+          selected,
+          isMine,
+        });
+      });
+    });
+
+    // Sort by time, then by unit
+    return list.sort((a, b) => a.time.localeCompare(b.time) || a.unit.localeCompare(b.unit));
+  }, [filterLane, filterTimeOfDay, dateKey, bookings, selection, myIds]);
+
   return (
     <>
-      {/* Date strip */}
+      {/* Top Controls & View Switcher */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <h1 className="display" style={{ fontSize: 28, lineHeight: 1 }}>Book Net Lane</h1>
+          <div style={{ fontSize: 12, color: 'var(--c-text-mute)', marginTop: 4 }}>
+            Dorset Cricket Centre · {dateKey}
+          </div>
+        </div>
+
+        {/* Desktop vs Mobile View Switcher */}
+        <div style={{ display: 'flex', gap: 4, background: 'rgba(247,245,240,0.06)', padding: 3, borderRadius: 8, border: '1px solid var(--c-border)' }}>
+          <button
+            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '5px 10px', fontSize: 12 }}
+            onClick={() => setViewMode('list')}
+          >
+            <ListFilter size={14} /> Mobile List View
+          </button>
+          <button
+            className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '5px 10px', fontSize: 12 }}
+            onClick={() => setViewMode('grid')}
+          >
+            <LayoutGrid size={14} /> Full Grid Matrix
+          </button>
+        </div>
+      </div>
+
+      {/* Date Strip */}
       <div className="date-strip">
         <button className="btn btn-ghost btn-sm btn-icon" onClick={() => shiftWindow(-7)} aria-label="Previous week"><ChevronLeft size={16} /></button>
         {dates.map((d, i) => {
@@ -213,11 +313,6 @@ export default function BookingBoardPage() {
           style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} aria-hidden tabIndex={-1} />
       </div>
 
-      <p style={{ margin: '-4px 24px 12px', fontSize: 12, color: 'var(--c-text-mute)' }}>
-        Booking for <b className="mono text-gold">{dateKey}</b>
-        {session.ecbCoach && <span className="badge badge-green" style={{ marginLeft: 10 }}>ECB Coach ({settings.ecbDiscount || 50}% discount)</span>}
-      </p>
-
       {/* Closed banner */}
       {closureToday && (
         <div className="closed-banner">
@@ -226,10 +321,10 @@ export default function BookingBoardPage() {
         </div>
       )}
 
-      {/* Admin close & range block buttons */}
+      {/* Admin actions */}
       {isAdmin && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '0 20px 12px', flexWrap: 'wrap' }}>
-          <button className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setRangeModal(true)}>
+          <button id="demo-block-range-btn" className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setRangeModal(true)}>
             <SlidersHorizontal size={14} /> Block Lane / Date Range
           </button>
           {!closureToday && (
@@ -240,77 +335,248 @@ export default function BookingBoardPage() {
         </div>
       )}
 
-      {/* Pricing note */}
-      <div style={{ padding: '0 20px 8px', fontSize: 12, color: 'var(--c-text-mute)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        {session.ecbCoach
-          ? <span className="text-green">✓ ECB Coach: £{getSlotPrice().toFixed(2)} per slot ({settings.ecbDiscount || 50}% discount applied)</span>
-          : <span>£{getSlotPrice().toFixed(2)} per slot · {settings.memberDiscount > 0 ? `${settings.memberDiscount}% member discount applied` : 'No membership discount'}</span>
+      {/* Pricing Note */}
+      <div style={{ padding: '0 20px 10px', fontSize: 12, color: 'var(--c-text-mute)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {session?.ecbCoach
+          ? <span id="demo-ecb-badge" className="text-green">✓ ECB Coach: £{getSlotPrice().toFixed(2)} per slot ({settings.ecbDiscount || 50}% discount applied)</span>
+          : <span>Rate: <b className="text-gold">£{getSlotPrice().toFixed(2)}</b> per slot · {settings.memberDiscount > 0 ? `${settings.memberDiscount}% member discount applied` : 'Standard rate'}</span>
         }
       </div>
 
-      {/* Legend */}
-      <div className="board-legend" style={{ padding: '8px 20px 12px' }}>
-        <span className="legend-item"><span className="legend-dot" style={{ background: '#52B788' }} />Available</span>
-        <span className="legend-item"><span className="legend-dot" style={{ background: '#FFD23F' }} />Selected</span>
-        <span className="legend-item"><span className="legend-dot" style={{ background: '#F4A300' }} />Booked</span>
-        <span className="legend-item"><span className="legend-dot" style={{ background: '#E24B4A' }} />Staff hold</span>
-        <span className="legend-item"><span className="legend-dot" style={{ background: '#52B788', opacity: 0.5, boxShadow: '0 0 0 1.5px #52B788' }} />My booking</span>
-      </div>
-
-      {/* Grid */}
-      <div className="board-wrap">
-        <div className="board-scroll">
-          <div className="booking-grid" style={{ '--cols': TIMES.length }}>
-            <div className="grid-header">
-              <div className="grid-corner grid-th">{sport.unitLabel}</div>
-              {TIMES.map(t => <div key={t} className="grid-th mono">{t}</div>)}
-            </div>
-            {sport.units.map(unit => (
-              <div className="grid-row" key={unit}>
-                <div className="grid-lane">{unit}</div>
-                {TIMES.map(t => {
-                  const existing = isBooked(unit, t);
-                  const past = isPastSlot(dateKey, t, todayKey, nowHour);
-                  const selected = selection.some(s => s.unit === unit && s.time === t);
-                  const isMyBooking = existing && myIds.includes(existing.id);
-                  let cls = 'grid-cell';
-                  if (closureToday) cls += ' closed';
-                  else if (past) cls += ' past';
-                  else if (existing && existing.type === 'blocked') cls += ' blocked';
-                  else if (existing && isMyBooking) cls += ' mine';
-                  else if (existing) cls += ' booked';
-                  else if (selected) cls += ' selected';
-                  else cls += ' available';
-                  return (
-                    <div key={t} className={cls} onClick={() => toggleCell(unit, t)} title={existing ? `${existing.name}${existing.type === 'blocked' ? ' (Staff hold)' : ''}` : ''}>
-                      <span className="dot" />
-                    </div>
-                  );
-                })}
-              </div>
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* MOBILE LIST VIEW (Tap-Friendly Cards)                       */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      {viewMode === 'list' && (
+        <div style={{ padding: '0 20px 120px' }}>
+          {/* Mobile Lane Filter Tabs */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setFilterLane('ALL')}
+              className={`btn btn-sm ${filterLane === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ borderRadius: 20, padding: '5px 14px', fontSize: 12.5 }}
+            >
+              All Units (6)
+            </button>
+            {sport.units.map(u => (
+              <button
+                key={u}
+                onClick={() => setFilterLane(u)}
+                className={`btn btn-sm ${filterLane === u ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ borderRadius: 20, padding: '5px 14px', fontSize: 12.5, whitespace: 'nowrap' }}
+              >
+                {u}
+              </button>
             ))}
           </div>
+
+          {/* Time of Day Filter Pills */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+            {[
+              { id: 'ALL', label: 'All Hours (7am-9pm)' },
+              { id: 'morning', label: '🌅 Morning (7am-12pm)' },
+              { id: 'afternoon', label: '☀️ Afternoon (12pm-5pm)' },
+              { id: 'evening', label: '🌙 Evening (5pm-9pm)' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setFilterTimeOfDay(t.id)}
+                style={{
+                  background: filterTimeOfDay === t.id ? 'rgba(255,210,63,0.15)' : 'rgba(247,245,240,0.04)',
+                  color: filterTimeOfDay === t.id ? 'var(--c-gold)' : 'var(--c-text-mute)',
+                  border: '1px solid ' + (filterTimeOfDay === t.id ? 'rgba(255,210,63,0.4)' : 'var(--c-border)'),
+                  fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer'
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Slot Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+            {listSlots.map(s => {
+              const endTime = `${String(parseInt(s.time) + 1).padStart(2, '0')}:00`;
+              
+              let bg = 'var(--c-bg-card)';
+              let border = '1px solid var(--c-border-hi)';
+              let statusText = 'Available';
+              let statusColor = 'var(--c-green)';
+              let disabled = false;
+
+              if (closureToday) {
+                bg = 'rgba(226,74,74,0.05)'; border = '1px solid rgba(226,74,74,0.3)';
+                statusText = 'Closed'; statusColor = 'var(--c-red)'; disabled = true;
+              } else if (s.past) {
+                bg = 'rgba(247,245,240,0.02)'; border = '1px solid rgba(247,245,240,0.05)';
+                statusText = 'Past'; statusColor = 'var(--c-text-faint)'; disabled = true;
+              } else if (s.existing && s.existing.type === 'blocked') {
+                bg = 'rgba(226,74,74,0.08)'; border = '1px solid rgba(226,74,74,0.4)';
+                statusText = 'Staff Hold'; statusColor = 'var(--c-red)';
+              } else if (s.existing && s.isMine) {
+                bg = 'rgba(82,183,136,0.12)'; border = '1.5px solid var(--c-green)';
+                statusText = 'My Booking'; statusColor = 'var(--c-green)';
+              } else if (s.existing) {
+                bg = 'rgba(244,163,0,0.08)'; border = '1px solid rgba(244,163,0,0.3)';
+                statusText = 'Booked'; statusColor = 'var(--c-amber)';
+              } else if (s.selected) {
+                bg = 'rgba(255,210,63,0.18)'; border = '2px solid var(--c-gold)';
+                statusText = 'Selected ✓'; statusColor = 'var(--c-gold)';
+              }
+
+              return (
+                <div
+                  key={`${s.unit}-${s.time}`}
+                  id={s.unit === 'Lane 1' && s.time === '11:00' ? 'demo-slot-lane1-11' : undefined}
+                  onClick={() => toggleCell(s.unit, s.time)}
+                  style={{
+                    background: bg,
+                    border,
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    cursor: disabled && !isAdmin ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.45 : 1,
+                    transition: 'all 120ms ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justify: 'space-between',
+                    minHeight: 84,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-text)' }}>
+                      {s.time} <span style={{ fontSize: 11, color: 'var(--c-text-faint)', fontWeight: 400 }}>- {endTime}</span>
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: statusColor }}>
+                      {statusText}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text-sub)' }}>
+                      {s.unit}
+                    </span>
+                    {!s.existing && !s.past && !closureToday && (
+                      <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-gold)' }}>
+                        £{getSlotPrice().toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {listSlots.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--c-text-mute)' }}>
+              No slots match your selected filters.
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* FULL MATRIX GRID VIEW (Desktop / Macro View)                */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      {viewMode === 'grid' && (
+        <>
+          <div className="board-legend" style={{ padding: '8px 20px 12px' }}>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#52B788' }} />Available</span>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#FFD23F' }} />Selected</span>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#F4A300' }} />Booked</span>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#E24B4A' }} />Staff hold</span>
+            <span className="legend-item"><span className="legend-dot" style={{ background: '#52B788', opacity: 0.5, boxShadow: '0 0 0 1.5px #52B788' }} />My booking</span>
+          </div>
+
+          <div className="board-wrap">
+            <div className="board-scroll">
+              <div className="booking-grid" style={{ '--cols': TIMES.length }}>
+                <div className="grid-header">
+                  <div className="grid-corner grid-th">{sport.unitLabel}</div>
+                  {TIMES.map(t => <div key={t} className="grid-th mono">{t}</div>)}
+                </div>
+                {sport.units.map(unit => (
+                  <div className="grid-row" key={unit}>
+                    <div className="grid-lane">{unit}</div>
+                    {TIMES.map(t => {
+                      const existing = isBooked(unit, t);
+                      const past = isPastSlot(dateKey, t, todayKey, nowHour);
+                      const selected = selection.some(s => s.unit === unit && s.time === t);
+                      const isMyBooking = existing && myIds.includes(existing.id);
+                      let cls = 'grid-cell';
+                      if (closureToday) cls += ' closed';
+                      else if (past) cls += ' past';
+                      else if (existing && existing.type === 'blocked') cls += ' blocked';
+                      else if (existing && isMyBooking) cls += ' mine';
+                      else if (existing) cls += ' booked';
+                      else if (selected) cls += ' selected';
+                      else cls += ' available';
+                      return (
+                        <div key={t} id={unit === 'Lane 1' && t === '11:00' ? 'demo-slot-lane1-11' : undefined} className={cls} onClick={() => toggleCell(unit, t)} title={existing ? `${existing.name}${existing.type === 'blocked' ? ' (Staff hold)' : ''}` : ''}>
+                          <span className="dot" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Cart bar */}
       {selection.length > 0 && (
-        <div className="cart-bar">
-          <div>
-            <div className="cart-info"><b>{selection.length}</b> slot{selection.length > 1 ? 's' : ''} selected · {sport.name} · {dateKey}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--c-text-faint)', marginTop: 2 }}>
-              {selection.map(s => `${s.unit} ${s.time}`).join(' · ')}
+        <div className="cart-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, padding: '14px 20px' }}>
+          {/* Top row: selection info & price */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div className="cart-info">
+                <b>{selection.length}</b> slot{selection.length > 1 ? 's' : ''} selected · {sport.name} · {dateKey}
+                {recurring && <span className="badge badge-gold" style={{ marginLeft: 8 }}>↻ {recurFreq} ({recurWeeks} wks)</span>}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--c-text-faint)', marginTop: 2 }}>
+                {selection.map(s => `${s.unit} ${s.time}`).join(' · ')}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ textAlign: 'right' }}>
+                <div className="cart-price">£{(totalPrice * (recurring ? recurWeeks : 1)).toFixed(2)}</div>
+                <div style={{ fontSize: 11, color: 'var(--c-text-mute)' }}>{recurring ? `total (${recurWeeks} sessions)` : 'total'}</div>
+              </div>
+              <div className="cart-actions">
+                <button className="btn btn-ghost" onClick={() => setSelection([])}>Clear</button>
+                <button id="demo-cart-pay-btn" className="btn btn-primary" onClick={goToCheckout}>Review & Pay →</button>
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div>
-              <div className="cart-price">£{totalPrice.toFixed(2)}</div>
-              <div style={{ fontSize: 11, color: 'var(--c-text-mute)' }}>total</div>
-            </div>
-            <div className="cart-actions">
-              <button className="btn btn-ghost" onClick={() => setSelection([])}>Clear</button>
-              <button className="btn btn-primary" onClick={goToCheckout}>Review & Pay →</button>
-            </div>
+
+          {/* Bottom row: Recurring / Standing Order Toggle */}
+          <div style={{ background: 'rgba(255,210,63,0.06)', border: '1px solid rgba(255,210,63,0.25)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: 'var(--c-gold)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} />
+              <RotateCcw size={14} /> Make this a standing / recurring order
+            </label>
+
+            {recurring && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ color: 'var(--c-text-mute)' }}>Frequency:</span>
+                  <select value={recurFreq} onChange={e => setRecurFreq(e.target.value)} style={{ background: 'var(--c-bg-card)', color: 'var(--c-gold)', border: '1px solid var(--c-border)', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}>
+                    <option value="weekly">Weekly</option>
+                    <option value="fortnightly">Fortnightly</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ color: 'var(--c-text-mute)' }}>Duration:</span>
+                  <select value={recurWeeks} onChange={e => setRecurWeeks(Number(e.target.value))} style={{ background: 'var(--c-bg-card)', color: 'var(--c-gold)', border: '1px solid var(--c-border)', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}>
+                    <option value={4}>4 Weeks</option>
+                    <option value={8}>8 Weeks</option>
+                    <option value={12}>12 Weeks</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -401,7 +667,7 @@ export default function BookingBoardPage() {
 
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={() => setRangeModal(false)} disabled={rangeBusy}>Cancel</button>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={applyRangeBlock} disabled={rangeBusy}>
+              <button id="demo-range-submit-btn" className="btn btn-primary" style={{ flex: 1 }} onClick={applyRangeBlock} disabled={rangeBusy}>
                 {rangeBusy ? 'Applying…' : 'Apply Hold Range'}
               </button>
             </div>

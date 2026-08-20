@@ -54,6 +54,12 @@ export async function seedDemoData() {
 
   await storage.set('bookings', JSON.stringify(demoBookings));
 
+  // Seed my-booking-ids for demo member
+  const myIdsExist = await storage.get('my-booking-ids');
+  if (!myIdsExist || !myIdsExist.value) {
+    await storage.set('my-booking-ids', JSON.stringify(['demo5', 'demo6']));
+  }
+
   // seed demo users
   const usersExist = await storage.get('users');
   if (!usersExist || !usersExist.value) {

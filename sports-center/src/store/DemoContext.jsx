@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from './AppContext.jsx';
 import { storage } from './storage.js';
@@ -10,241 +10,486 @@ function nextDay(offset = 1) {
   const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10);
 }
 
-const DEMO_STEPS = [
-  {
-    id: 'intro',
-    persona: null,
-    title: '🏏 Stage 1 — System Overview & Presentation',
-    actionBadge: '⚡ OVERVIEW: Dorset Cricket Centre Prototype',
-    narration: 'This auto-pilot tour walks through the full end-to-end user journey — member booking, ECB coach discounts, recurring sessions, and staff approval management.',
-    route: '/',
-    duration: 6500,
-  },
-  {
-    id: 'member-login',
-    persona: 'member',
-    personaName: 'Tom Richards',
-    title: 'Stage 2 — Member Authentication',
-    actionBadge: '⚡ ACTION: Logging in as Member (tom@demo.com)',
-    narration: 'Tom Richards is a club member. He opens the app and signs in. Club members get a 10% discount applied automatically to all lane bookings.',
-    route: '/app/auth',
-    autoLogin: { name: 'Tom Richards', email: 'tom@demo.com', role: 'user', ecbCoach: false, ecbNumber: '' },
-    duration: 6000,
-  },
-  {
-    id: 'booking-board',
-    persona: 'member',
-    personaName: 'Tom Richards',
-    title: 'Stage 3 — Real-time Booking Board',
-    actionBadge: '⚡ ACTION: Viewing 5 Net Lanes + Bowling Machine Grid',
-    narration: 'Tom views the live availability board (5 net lanes + 1 bowling machine). Green = open, amber = booked, red = staff hold. No phone calls needed.',
-    route: '/app/book',
-    duration: 7000,
-  },
-  {
-    id: 'checkout',
-    persona: 'member',
-    personaName: 'Tom Richards',
-    title: 'Stage 4 — Selecting Slot & Stripe Checkout',
-    actionBadge: '⚡ ACTION: Selected Lane 1 @ 11:00 (10% Member Discount Applied)',
-    narration: 'Tom selects Lane 1 at 11:00. The checkout calculates his 10% member discount (£10.80 instead of £12.00) and processes payment securely.',
-    route: '/app/checkout',
-    bookingPayload: () => ({
-      selection: [{ key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' }],
-      dateKey: nextDay(1),
-      sportId: 'cricket',
-      sportName: 'Cricket',
-      totalPrice: 10.80,
-    }),
-    duration: 7000,
-  },
-  {
-    id: 'confirmation',
-    persona: 'member',
-    personaName: 'Tom Richards',
-    title: 'Stage 5 — Confirmation & Scannable Entry Pass',
-    actionBadge: '⚡ ACTION: Payment Authorized — Generating Gate QR Code',
-    narration: 'Payment confirmed! Tom receives booking reference DCC-DEMO01, a scannable QR code for the gate, and an automated notification.',
-    route: '/app/confirm',
-    confirmPayload: () => ({
-      ref: 'DCC-DEMO01',
-      sportName: 'Cricket',
-      dateKey: nextDay(1),
-      totalPrice: 10.80,
-      paymentRef: 'TXN-DEMO0001',
-      selection: [{ key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' }],
-      recurring: false,
-      name: 'Tom Richards',
-    }),
-    duration: 6500,
-  },
-  {
-    id: 'my-bookings',
-    persona: 'member',
-    personaName: 'Tom Richards',
-    title: 'Stage 6 — My Bookings & 24h Reversal Policy',
-    actionBadge: '⚡ ACTION: Viewing Booking History & Cancellation Rules',
-    narration: 'Tom manages his bookings here. Cancellations with over 24 hours notice automatically trigger a 100% payment reversal to his card.',
-    route: '/app/my-bookings',
-    duration: 6500,
-  },
-  {
-    id: 'ecb-login',
-    persona: 'ecb',
-    personaName: 'Sarah Mitchell',
-    title: 'Stage 7 — ECB Coach Persona Switch',
-    actionBadge: '⚡ ACTION: Logging in as ECB Coach (ID: ECB-44821)',
-    narration: 'Switching personas to Sarah Mitchell, a qualified ECB coach. She registered with coach ID ECB-44821 to access subsidised coaching rates.',
-    route: '/app/auth',
-    autoLogin: { name: 'Sarah Mitchell', email: 'sarah@demo.com', role: 'user', ecbCoach: true, ecbNumber: 'ECB-44821' },
-    duration: 6500,
-  },
-  {
-    id: 'ecb-board',
-    persona: 'ecb',
-    personaName: 'Sarah Mitchell',
-    title: 'Stage 8 — 50% ECB Coach Discount',
-    actionBadge: '⚡ ACTION: 50% ECB Coach Discount Active Across All Slots',
-    narration: 'Sarah sees the booking board with her 50% ECB coach discount applied automatically to all slots (£6.00/hr). Configurable by staff in settings.',
-    route: '/app/book',
-    duration: 7000,
-  },
-  {
-    id: 'admin-login',
-    persona: 'admin',
-    personaName: 'Centre Staff',
-    title: 'Stage 9 — Switch to Staff Admin Persona',
-    actionBadge: '⚡ ACTION: Authenticating as Super-Admin Centre Staff',
-    narration: 'Switching to the centre staff view. Staff have a private dashboard to track revenue, manage bookings, approve staff, and block date ranges.',
-    route: '/app/auth',
-    autoLogin: { name: 'Centre Staff', email: 'staff@hurnbridge.cc', role: 'admin', ecbCoach: false, ecbNumber: '' },
-    duration: 6000,
-  },
-  {
-    id: 'admin-overview',
-    persona: 'admin',
-    personaName: 'Centre Staff',
-    title: 'Stage 10 — Revenue & Analytics Dashboard',
-    actionBadge: '⚡ ACTION: Reviewing 8-Week Revenue & Utilisation Charts',
-    narration: 'Staff view revenue trends across 8 weeks, booking volume, and standing orders. All statistics update automatically from real-time data.',
-    route: '/app/admin',
-    adminTab: 'overview',
-    duration: 7000,
-  },
-  {
-    id: 'admin-approvals',
-    persona: 'admin',
-    personaName: 'Centre Staff',
-    title: 'Stage 11 — Staff Approval Workflow',
-    actionBadge: '⚡ ACTION: Reviewing Pending Staff Registration (Alex Turner)',
-    narration: 'New staff registrations require manager approval. Here staff can review pending applicant Alex Turner and grant admin access with 1 click.',
-    route: '/app/admin',
-    adminTab: 'approvals',
-    duration: 7000,
-  },
-  {
-    id: 'admin-block',
-    persona: 'admin',
-    personaName: 'Centre Staff',
-    title: 'Stage 12 — Lane Range Blocking',
-    actionBadge: '⚡ ACTION: Multi-day Lane Hold (Maintenance / Events)',
-    narration: 'Staff can block specific lanes across a custom date range or close all lanes for match days. Members immediately see the hold reason on the board.',
-    route: '/app/book',
-    duration: 7000,
-  },
-  {
-    id: 'done',
-    persona: null,
-    title: '🏁 Demonstration Complete',
-    actionBadge: '⚡ PROTOTYPE READY: End-to-End Solution Demonstrated',
-    narration: 'The Dorset Cricket Centre prototype covers user journeys, ECB discounts, 24h cancellations, staff approvals, and range blocking. Ready for live deployment.',
-    route: '/',
-    duration: 9000,
-  },
-];
-
 export function DemoProvider({ children }) {
-  const { setSession } = useApp();
+  const { setSession, setMyIds, showToast } = useApp();
   const navigate = useNavigate();
 
-  const [active, setActive] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [demoAdminTab, setDemoAdminTab] = useState(null);
-  const timerRef = useRef(null);
-  const isPlayingRef = useRef(false);
+  const [activePersona, setActivePersona] = useState(null); // 'member' | 'ecb' | 'new_staff' | 'admin'
+  const [activeJourneyId, setActiveJourneyId] = useState(null);
+  const [activeTargetSelector, setActiveTargetSelector] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
 
-  const totalSteps = DEMO_STEPS.length;
-  const step = DEMO_STEPS[stepIndex] || DEMO_STEPS[0];
+  // Visual UI state triggers
+  const [demoPreselectSlot, setDemoPreselectSlot] = useState(false);
+  const [demoSetRecurring, setDemoSetRecurring] = useState(false);
+  const [demoOpenCancelModal, setDemoOpenCancelModal] = useState(false);
+  const [demoOpenRangeModal, setDemoOpenRangeModal] = useState(false);
 
-  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  const actionTimerRef = useRef(null);
+  const nextActionRef = useRef(null);
 
-  async function applyStep(s) {
-    if (!s) return;
-    if (s.autoLogin) {
-      const sessionData = {
-        userId: s.autoLogin.email,
-        name: s.autoLogin.name,
-        email: s.autoLogin.email,
-        role: s.autoLogin.role,
-        ecbCoach: s.autoLogin.ecbCoach || false,
-        ecbNumber: s.autoLogin.ecbNumber || '',
-      };
-      await storage.set('session', JSON.stringify(sessionData));
-      setSession(sessionData);
-      await new Promise(r => setTimeout(r, 200));
+  async function setDemoUserSession(email, name, role, ecbCoach = false, ecbNumber = '') {
+    const sessionData = { userId: email, name, email, role, ecbCoach, ecbNumber };
+    await storage.set('session', JSON.stringify(sessionData));
+    setSession(sessionData);
+
+    if (email === 'tom@demo.com') {
+      const demoIds = ['demo5', 'demo6', 'demo1'];
+      await storage.set('my-booking-ids', JSON.stringify(demoIds));
+      setMyIds(demoIds);
     }
-    if (s.bookingPayload) sessionStorage.setItem('dcc_pending', JSON.stringify(s.bookingPayload()));
-    if (s.confirmPayload) sessionStorage.setItem('dcc_confirm', JSON.stringify(s.confirmPayload()));
-    if (s.adminTab !== undefined) setDemoAdminTab(s.adminTab);
-    navigate(s.route);
   }
 
-  useEffect(() => {
-    if (!active || !isPlaying) return;
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      if (!isPlayingRef.current) return;
-      const next = stepIndex + 1;
-      if (next < totalSteps) {
-        setStepIndex(next);
-        await applyStep(DEMO_STEPS[next]);
-      } else {
-        setIsPlaying(false);
-      }
-    }, step.duration || 6500);
-    return () => clearTimeout(timerRef.current);
-  }, [active, isPlaying, stepIndex]);
+  function clearActionTimer() {
+    if (actionTimerRef.current) clearTimeout(actionTimerRef.current);
+    nextActionRef.current = null;
+  }
 
-  async function startDemo() {
-    setActive(true);
-    setStepIndex(0);
+  function resetVisualTriggers() {
+    setDemoPreselectSlot(false);
+    setDemoSetRecurring(false);
+    setDemoOpenCancelModal(false);
+    setDemoOpenRangeModal(false);
+  }
+
+  function togglePlayPause() {
+    if (isPlaying) {
+      clearActionTimer();
+      setIsPlaying(false);
+      showToast('⏸ Journey Paused');
+    } else {
+      setIsPlaying(true);
+      showToast('▶ Resuming Journey');
+      if (nextActionRef.current) {
+        nextActionRef.current();
+      }
+    }
+  }
+
+  async function triggerJourney(journeyId) {
+    clearActionTimer();
+    resetVisualTriggers();
+    setActiveJourneyId(journeyId);
     setIsPlaying(true);
-    await applyStep(DEMO_STEPS[0]);
+    setIsCompleted(false);
+
+    const STEP_DELAY = 3800;
+
+    switch (journeyId) {
+      // ── 1. SINGLE SLOT BOOKING ──────────────────────────────────────
+      case 'single_booking': {
+        setActivePersona('member');
+        await setDemoUserSession('tom@demo.com', 'Tom Richards', 'user');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/6: Member logs in');
+
+        const step2 = () => {
+          navigate('/app/book');
+          setDemoPreselectSlot(true);
+          setActiveTargetSelector('#demo-slot-lane1-11');
+          showToast('Step 2/6: Selects date & slot Lane 1 @ 11:00');
+
+          const step3 = () => {
+            setActiveTargetSelector('#demo-cart-pay-btn');
+            showToast('Step 3/6: Cart bar displays Review & Pay →');
+
+            const step4 = () => {
+              sessionStorage.setItem('dcc_pending', JSON.stringify({
+                selection: [{ key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' }],
+                dateKey: nextDay(1),
+                sportId: 'cricket',
+                sportName: 'Cricket',
+                totalPrice: 10.80,
+                recurring: false,
+              }));
+              navigate('/app/checkout');
+              setActiveTargetSelector('#demo-pay-submit-btn');
+              showToast('Step 4/6: Auto-fills card & pays £10.80');
+
+              const step5 = () => {
+                sessionStorage.setItem('dcc_confirm', JSON.stringify({
+                  ref: 'DCC-DEMO01',
+                  sportName: 'Cricket',
+                  dateKey: nextDay(1),
+                  totalPrice: 10.80,
+                  paymentRef: 'TXN-DEMO0001',
+                  selection: [{ key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' }],
+                  recurring: false,
+                  name: 'Tom Richards',
+                }));
+                navigate('/app/confirm');
+                setActiveTargetSelector('#demo-qr-wrap');
+                showToast('Step 5/6: Saves QR code pass DCC-DEMO01');
+
+                const step6 = () => {
+                  navigate('/app/my-bookings');
+                  setActiveTargetSelector('#demo-cancel-btn-0');
+                  setIsCompleted(true);
+                  showToast('Step 6/6: Verifies newly created booking in My Bookings');
+                };
+
+                nextActionRef.current = step6;
+                actionTimerRef.current = setTimeout(step6, STEP_DELAY);
+              };
+
+              nextActionRef.current = step5;
+              actionTimerRef.current = setTimeout(step5, STEP_DELAY);
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 2. MULTI-SLOT & RECURRING BOOKING ───────────────────────────
+      case 'multi_recurring': {
+        setActivePersona('member');
+        await setDemoUserSession('tom@demo.com', 'Tom Richards', 'user');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/6: Member logs in');
+
+        const step2 = () => {
+          navigate('/app/book');
+          setDemoPreselectSlot(true);
+          setDemoSetRecurring(true);
+          setActiveTargetSelector('#demo-slot-lane1-11');
+          showToast('Step 2/6: Selects slots & toggles 8-week standing order on board');
+
+          const step3 = () => {
+            setActiveTargetSelector('#demo-cart-pay-btn');
+            showToast('Step 3/6: Cart bar displays Standing Order Total (£259.20)');
+
+            const step4 = () => {
+              sessionStorage.setItem('dcc_pending', JSON.stringify({
+                selection: [
+                  { key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' },
+                  { key: 'Lane 2|14:00', unit: 'Lane 2', time: '14:00' },
+                ],
+                dateKey: nextDay(2),
+                sportId: 'cricket',
+                sportName: 'Cricket',
+                totalPrice: 259.20,
+                recurring: true,
+                recurFreq: 'weekly',
+                recurWeeks: 8,
+              }));
+              navigate('/app/checkout');
+              setActiveTargetSelector('#demo-pay-submit-btn');
+              showToast('Step 4/6: Auto-fills card & confirms standing order payment');
+
+              const step5 = () => {
+                sessionStorage.setItem('dcc_confirm', JSON.stringify({
+                  ref: 'DCC-RECUR01',
+                  sportName: 'Cricket',
+                  dateKey: nextDay(2),
+                  totalPrice: 259.20,
+                  paymentRef: 'TXN-RECUR8812',
+                  selection: [
+                    { key: 'Lane 1|11:00', unit: 'Lane 1', time: '11:00' },
+                    { key: 'Lane 2|14:00', unit: 'Lane 2', time: '14:00' },
+                  ],
+                  recurring: true,
+                  recurFreq: 'weekly',
+                  recurCount: 8,
+                  name: 'Tom Richards',
+                }));
+                navigate('/app/confirm');
+                setActiveTargetSelector('#demo-qr-wrap');
+                showToast('Step 5/6: Saves recurring standing order pass');
+
+                const step6 = () => {
+                  navigate('/app/my-bookings');
+                  setActiveTargetSelector('#demo-cancel-btn-0');
+                  setIsCompleted(true);
+                  showToast('Step 6/6: Verifies standing order series in My Bookings');
+                };
+
+                nextActionRef.current = step6;
+                actionTimerRef.current = setTimeout(step6, STEP_DELAY);
+              };
+
+              nextActionRef.current = step5;
+              actionTimerRef.current = setTimeout(step5, STEP_DELAY);
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 3. CANCELLATION & 24H CARD REVERSAL ─────────────────────────
+      case 'cancellation_refund': {
+        setActivePersona('member');
+        await setDemoUserSession('tom@demo.com', 'Tom Richards', 'user');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/4: Member logs in');
+
+        const step2 = () => {
+          navigate('/app/my-bookings');
+          setActiveTargetSelector('#demo-cancel-btn-0');
+          showToast('Step 2/4: Opens My Bookings list');
+
+          const step3 = () => {
+            setDemoOpenCancelModal(true);
+            setActiveTargetSelector('#demo-cancel-modal-submit-btn');
+            showToast('Step 3/4: Opens cancellation modal form (24h rule verified)');
+
+            const step4 = () => {
+              setDemoOpenCancelModal(false);
+              setIsCompleted(true);
+              showToast('Step 4/4: ✓ 100% Card reversal processed & booking cancelled');
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 4. ECB COACH 50% RATE ───────────────────────────────────────
+      case 'ecb_rate': {
+        setActivePersona('ecb');
+        await setDemoUserSession('sarah@demo.com', 'Sarah Mitchell', 'user', true, 'ECB-44821');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/6: ECB Coach logs in');
+
+        const step2 = () => {
+          navigate('/app/book');
+          setDemoPreselectSlot(true);
+          setActiveTargetSelector('#demo-ecb-badge');
+          showToast('Step 2/6: Board calculates 50% coach rate (£6.00/hr)');
+
+          const step3 = () => {
+            setActiveTargetSelector('#demo-cart-pay-btn');
+            showToast('Step 3/6: Clicks Review & Pay');
+
+            const step4 = () => {
+              sessionStorage.setItem('dcc_pending', JSON.stringify({
+                selection: [{ key: 'Lane 2|10:00', unit: 'Lane 2', time: '10:00' }],
+                dateKey: nextDay(1),
+                sportId: 'cricket',
+                sportName: 'Cricket',
+                totalPrice: 6.00,
+              }));
+              navigate('/app/checkout');
+              setActiveTargetSelector('#demo-pay-submit-btn');
+              showToast('Step 4/6: Confirms ECB coach rate');
+
+              const step5 = () => {
+                sessionStorage.setItem('dcc_confirm', JSON.stringify({
+                  ref: 'DCC-ECB01',
+                  sportName: 'Cricket',
+                  dateKey: nextDay(1),
+                  totalPrice: 6.00,
+                  paymentRef: 'TXN-ECB44821',
+                  selection: [{ key: 'Lane 2|10:00', unit: 'Lane 2', time: '10:00' }],
+                  recurring: false,
+                  name: 'Sarah Mitchell',
+                }));
+                navigate('/app/confirm');
+                setActiveTargetSelector('#demo-qr-wrap');
+                showToast('Step 5/6: Saves coach QR code pass');
+
+                const step6 = () => {
+                  navigate('/app/my-bookings');
+                  setActiveTargetSelector('#demo-cancel-btn-0');
+                  setIsCompleted(true);
+                  showToast('Step 6/6: Verifies coach session in My Bookings');
+                };
+
+                nextActionRef.current = step6;
+                actionTimerRef.current = setTimeout(step6, STEP_DELAY);
+              };
+
+              nextActionRef.current = step5;
+              actionTimerRef.current = setTimeout(step5, STEP_DELAY);
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 5. STAFF APPROVAL QUEUE ────────────────────────────────────
+      case 'staff_approval': {
+        setActivePersona('admin');
+        await setDemoUserSession('staff@hurnbridge.cc', 'Centre Staff', 'admin');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/4: Super-Admin logs in');
+
+        const step2 = () => {
+          navigate('/app/admin');
+          setActiveTargetSelector('#demo-approve-alex-btn');
+          showToast('Step 2/4: Opens Staff Approvals Queue');
+
+          const step3 = () => {
+            setActiveTargetSelector('#demo-approve-alex-btn');
+            showToast('Step 3/4: Approves staff registration for Alex Turner');
+
+            const step4 = () => {
+              setIsCompleted(true);
+              showToast('Step 4/4: Staff registration approved with full admin access');
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 6. ADMIN DASHBOARD & ANALYTICS ─────────────────────────────
+      case 'admin_dashboard': {
+        setActivePersona('admin');
+        await setDemoUserSession('staff@hurnbridge.cc', 'Centre Staff', 'admin');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/3: Super-Admin logs in');
+
+        const step2 = () => {
+          navigate('/app/admin');
+          setActiveTargetSelector(null);
+          showToast('Step 2/3: Opens Admin Dashboard & Revenue Charts');
+
+          const step3 = () => {
+            setIsCompleted(true);
+            showToast('Step 3/3: 8-week revenue (£3,420) & utilisation verified');
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 7. BLOCK LANES & RANGE HOLD ─────────────────────────────────
+      case 'block_lanes': {
+        setActivePersona('admin');
+        await setDemoUserSession('staff@hurnbridge.cc', 'Centre Staff', 'admin');
+        navigate('/app/auth');
+        setActiveTargetSelector('#demo-login-btn');
+        showToast('Step 1/4: Super-Admin logs in');
+
+        const step2 = () => {
+          navigate('/app/book');
+          setActiveTargetSelector('#demo-block-range-btn');
+          showToast('Step 2/4: Opens Super-Admin Booking Board');
+
+          const step3 = () => {
+            setDemoOpenRangeModal(true);
+            setActiveTargetSelector('#demo-range-submit-btn');
+            showToast('Step 3/4: Opens Block Lane / Date Range Modal');
+
+            const step4 = () => {
+              setDemoOpenRangeModal(false);
+              setIsCompleted(true);
+              showToast('Step 4/4: ✓ Pitch maintenance hold applied on Lane 1 across dates');
+            };
+
+            nextActionRef.current = step4;
+            actionTimerRef.current = setTimeout(step4, STEP_DELAY);
+          };
+
+          nextActionRef.current = step3;
+          actionTimerRef.current = setTimeout(step3, STEP_DELAY);
+        };
+
+        nextActionRef.current = step2;
+        actionTimerRef.current = setTimeout(step2, STEP_DELAY);
+        break;
+      }
+
+      // ── 8. FUTURE SPORTS EXPANSION ─────────────────────────────────
+      case 'future_sports': {
+        setIsCompleted(true);
+        showToast('✅ Multi-Sport Platform Engine: Extensible to Squash, Padel & Badminton!');
+        break;
+      }
+
+      default:
+        break;
+    }
   }
 
   function stopDemo() {
-    clearTimeout(timerRef.current);
-    setActive(false);
-    setIsPlaying(false);
-    setStepIndex(0);
-    setDemoAdminTab(null);
-    navigate('/');
+    clearActionTimer();
+    resetVisualTriggers();
+    setActivePersona(null);
+    setActiveJourneyId(null);
+    setActiveTargetSelector(null);
+    setIsCompleted(false);
+    setIsPlaying(true);
+    navigate('/app/book');
   }
 
-  async function goToStepIdx(idx) {
-    clearTimeout(timerRef.current);
-    const clamped = Math.max(0, Math.min(idx, totalSteps - 1));
-    setStepIndex(clamped);
-    await applyStep(DEMO_STEPS[clamped]);
+  function startDemo() {
+    triggerJourney('single_booking');
   }
-
-  const nextStep = () => goToStepIdx(stepIndex + 1);
-  const prevStep = () => goToStepIdx(stepIndex - 1);
-  const togglePlay = () => setIsPlaying(p => !p);
 
   return (
-    <DemoContext.Provider value={{ active, step, stepIndex, totalSteps, isPlaying, demoAdminTab, startDemo, stopDemo, nextStep, prevStep, togglePlay }}>
+    <DemoContext.Provider
+      value={{
+        activePersona,
+        activeJourneyId,
+        activeTargetSelector,
+        demoPreselectSlot,
+        demoSetRecurring,
+        demoOpenCancelModal,
+        demoOpenRangeModal,
+        isPlaying,
+        isCompleted,
+        togglePlayPause,
+        triggerJourney,
+        startDemo,
+        stopDemo,
+      }}
+    >
       {children}
     </DemoContext.Provider>
   );
