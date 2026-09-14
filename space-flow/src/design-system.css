@@ -1521,19 +1521,270 @@ img { max-width: 100%; }
 }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE DESIGN SYSTEM & MOBILE ADAPTATIONS
    ============================================================ */
+
+/* Utility helper classes for responsive text labels */
+.btn-label-short { display: none; }
+.btn-label-long { display: inline; }
+
+/* Responsive Media Queries */
 @media (max-width: 900px) {
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .sf-main { padding: 20px 16px; }
-  .sf-header-top { padding: 12px 16px; }
-  .sf-nav { padding: 0 16px; }
+  .sf-main { padding: 18px 14px; }
+  .sf-header-top { padding: 10px 16px !important; }
+  .sf-nav-bar { padding: 0 16px !important; }
+
+  /* Presentation hero responsive */
+  .pres-hero-content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+  .mock-screen {
+    width: 100% !important;
+    max-width: 380px !important;
+    margin: 16px auto 0 !important;
+  }
+  .pres-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
 }
-@media (max-width: 600px) {
+
+@media (max-width: 640px) {
+  /* Layout & Global */
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .container { padding: 0 16px; }
-  .pres-hero-title { font-size: 40px; }
+  .container { padding: 0 14px; }
+  .sf-main { padding: 14px 10px; }
+  .sf-card { padding: 16px 12px; }
+  .sf-card-sm { padding: 12px 10px; }
+  
+  /* Typography */
+  .page-title { font-size: 22px; }
+  .page-subtitle { font-size: 12.5px; }
+  .pres-hero-title { font-size: clamp(30px, 8.5vw, 44px) !important; }
+  .pres-hero-sub { font-size: 15px; margin-bottom: 24px; }
+
+  /* Top Header Bar */
+  .sf-header-top {
+    padding: 10px 12px !important;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sf-wordmark { font-size: 19px !important; }
+  .sf-wordmark-sub { display: none !important; }
+  .user-details-text { display: none !important; }
+  .btn-label-long { display: none !important; }
+  .btn-label-short { display: inline !important; }
+
+  /* Header action buttons */
+  .btn-direct-booking {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    gap: 4px !important;
+  }
+  .btn-role-switcher {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    gap: 4px !important;
+  }
+
+  /* Navigation Bar: smooth horizontal scrolling */
+  .sf-nav-bar {
+    padding: 0 10px !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sf-nav-bar::-webkit-scrollbar { display: none; }
+  .sf-nav {
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 2px;
+  }
+  .sf-nav::-webkit-scrollbar { display: none; }
+  .sf-nav-btn {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+    gap: 5px !important;
+    flex-shrink: 0;
+  }
+
+  /* Operations Calendar Mobile Styling */
+  .cal-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .cal-header-action {
+    width: 100%;
+  }
+  .cal-header-action .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Calendar Controls Card */
+  .cal-controls-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .cal-view-switcher {
+    width: 100% !important;
+    display: flex !important;
+  }
+  .cal-view-switcher button {
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center;
+    padding: 7px 8px !important;
+    font-size: 12.5px !important;
+  }
+
+  .cal-date-nav {
+    width: 100% !important;
+    justify-content: space-between !important;
+    background: var(--sf-bg-surface);
+    padding: 6px 10px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--sf-border);
+  }
+  .cal-date-nav-title {
+    font-size: 13.5px !important;
+    min-width: 0 !important;
+    text-align: center;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cal-filters {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .cal-filters > div:last-child {
+    grid-column: 1 / -1;
+  }
+  .cal-filters select {
+    width: 100% !important;
+  }
+
+  /* Legend bar */
+  .cal-legend-bar {
+    gap: 8px 12px !important;
+    font-size: 11px !important;
+    padding: 8px 10px !important;
+  }
+
+  /* Facility Tabs in Day View */
+  .cal-facility-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .cal-facility-tabs::-webkit-scrollbar { display: none; }
+  .cal-facility-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--sf-border);
+    background: var(--sf-bg-surface);
+    color: var(--sf-text-sub);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+  .cal-facility-pill.active {
+    background: var(--sf-violet-dim);
+    border-color: var(--sf-violet);
+    color: var(--sf-text);
+    font-weight: 700;
+  }
+
+  /* Week summary cards */
+  .cal-week-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .cal-week-stats .stat-card {
+    padding: 10px 12px !important;
+  }
+  .cal-week-stats .stat-card-value {
+    font-size: 18px !important;
+  }
+
+  /* Mobile Week Columns */
+  .cal-week-columns {
+    display: grid !important;
+    grid-template-columns: repeat(7, 220px) !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+
+  /* Mobile Month Calendar & Agenda */
+  .cal-month-header {
+    gap: 2px !important;
+    margin-bottom: 4px !important;
+  }
+  .cal-month-header > div {
+    font-size: 10.5px !important;
+    padding: 4px 0 !important;
+  }
+  .cal-month-grid {
+    gap: 3px !important;
+  }
+  .cal-month-cell {
+    min-height: 52px !important;
+    padding: 4px 3px !important;
+  }
+  .cal-month-cell-daynum {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 11px !important;
+  }
+  .cal-month-event-chip {
+    display: none !important;
+  }
+  .cal-month-dot-row {
+    display: flex !important;
+    gap: 3px;
+    justify-content: center;
+    margin-top: 3px;
+    flex-wrap: wrap;
+  }
+
+  /* Wizard & Dialogs */
   .wizard-stepper { gap: 4px; }
-  .wizard-connector { width: 20px; }
+  .wizard-connector { width: 14px; }
+  .stat-card { padding: 12px 14px; }
 }
+
+@media (min-width: 641px) {
+  .cal-facility-tabs {
+    display: none;
+  }
+  .cal-month-dot-row {
+    display: none !important;
+  }
+  .cal-month-agenda-mobile {
+    display: none !important;
+  }
+}
+

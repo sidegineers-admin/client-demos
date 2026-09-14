@@ -42,6 +42,11 @@ export default function AdminCalendarPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedFacilityId, setSelectedFacilityId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedMonthDate, setSelectedMonthDate] = useState(() => toDateKey(new Date()));
+
+  useEffect(() => {
+    setSelectedMonthDate(toDateKey(currentDate));
+  }, [currentDate]);
 
   // Direct Booking Modal
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -234,7 +239,7 @@ export default function AdminCalendarPage() {
   return (
     <div style={{ maxWidth: '100%' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="cal-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 className="page-title" style={{ margin: 0 }}>Operations Calendar</h1>
@@ -245,7 +250,7 @@ export default function AdminCalendarPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="cal-header-action" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             className="btn btn-primary"
             onClick={() => {
@@ -263,9 +268,9 @@ export default function AdminCalendarPage() {
       </div>
 
       {/* Control Bar: View Modes, Navigation, Filters */}
-      <div className="sf-card sf-card-sm" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+      <div className="sf-card sf-card-sm cal-controls-card" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
         {/* View Switcher: Day | Week | Month */}
-        <div style={{ display: 'flex', background: 'var(--sf-bg-surface)', padding: 3, borderRadius: 'var(--r-md)', border: '1px solid var(--sf-border)' }}>
+        <div className="cal-view-switcher" style={{ display: 'flex', background: 'var(--sf-bg-surface)', padding: 3, borderRadius: 'var(--r-md)', border: '1px solid var(--sf-border)' }}>
           {['day', 'week', 'month'].map(mode => (
             <button
               key={mode}
@@ -279,7 +284,7 @@ export default function AdminCalendarPage() {
         </div>
 
         {/* Date Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="cal-date-nav" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={handlePrev} title="Previous">
             <ChevronLeft size={16} />
           </button>
@@ -289,13 +294,13 @@ export default function AdminCalendarPage() {
           <button className="btn btn-ghost btn-sm" onClick={handleNext} title="Next">
             <ChevronRight size={16} />
           </button>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, marginLeft: 8, minWidth: 190 }}>
+          <span className="cal-date-nav-title" style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, marginLeft: 8, minWidth: 190 }}>
             {headerTitle}
           </span>
         </div>
 
         {/* Filters: Location, Facility & Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="cal-filters" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <MapPin size={14} style={{ color: 'var(--sf-cyan-lt)' }} />
             <select
@@ -319,8 +324,8 @@ export default function AdminCalendarPage() {
               onChange={e => setSelectedFacilityId(e.target.value)}
               style={{ width: 160 }}
             >
-              <option value="all">All Spaces ({displayedFacilities.length})</option>
-              {displayedFacilities.map(f => (
+              <option value="all">All Spaces ({facilities.length})</option>
+              {facilities.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
@@ -344,7 +349,7 @@ export default function AdminCalendarPage() {
       </div>
 
       {/* Legend Banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 14px', background: 'var(--sf-bg-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--r-md)', marginBottom: 18, fontSize: 12, color: 'var(--sf-text-sub)', flexWrap: 'wrap' }}>
+      <div className="cal-legend-bar" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 14px', background: 'var(--sf-bg-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--r-md)', marginBottom: 18, fontSize: 12, color: 'var(--sf-text-sub)', flexWrap: 'wrap' }}>
         <span style={{ fontWeight: 700, color: 'var(--sf-text)' }}>Legend:</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--sf-emerald)' }} /> Confirmed Event
@@ -368,33 +373,54 @@ export default function AdminCalendarPage() {
 
       {/* ─── VIEW 1: DAY TIMELINE VIEW ─── */}
       {viewMode === 'day' && (
-        <div className="sf-card" style={{ padding: 0, overflowX: 'auto' }}>
-          <div style={{ minWidth: 780 }}>
-            {/* Header: Facility Columns */}
-            <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${displayedFacilities.length}, minmax(180px, 1fr))`, borderBottom: '1px solid var(--sf-border)', background: 'var(--sf-bg-surface)' }}>
-              <div style={{ padding: '14px 12px', fontSize: 12, fontWeight: 700, color: 'var(--sf-text-mute)', textAlign: 'center', borderRight: '1px solid var(--sf-border)' }}>
-                Time
-              </div>
-              {displayedFacilities.map(fac => (
-                <div key={fac.id} style={{ padding: '12px 16px', borderRight: '1px solid var(--sf-border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: fac.accentColor || 'var(--sf-violet)' }} />
-                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fac.name}</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--sf-text-mute)', marginTop: 2 }}>
-                    Cap: {fac.capacity} · £{fac.baseHourlyRate}/hr
-                  </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Facility Selector Tabs (Mobile & Quick-Switch) */}
+          <div className="cal-facility-tabs">
+            <button
+              className={`cal-facility-pill ${selectedFacilityId === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedFacilityId('all')}
+            >
+              All Spaces ({facilities.length})
+            </button>
+            {facilities.map(f => (
+              <button
+                key={f.id}
+                className={`cal-facility-pill ${selectedFacilityId === f.id ? 'active' : ''}`}
+                onClick={() => setSelectedFacilityId(f.id)}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.accentColor || 'var(--sf-violet)' }} />
+                {f.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="sf-card" style={{ padding: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ minWidth: displayedFacilities.length === 1 ? '100%' : Math.max(340, 70 + displayedFacilities.length * 160) }}>
+              {/* Header: Facility Columns */}
+              <div style={{ display: 'grid', gridTemplateColumns: `65px repeat(${displayedFacilities.length}, minmax(${displayedFacilities.length === 1 ? '1fr' : '150px'}, 1fr))`, borderBottom: '1px solid var(--sf-border)', background: 'var(--sf-bg-surface)' }}>
+                <div style={{ position: 'sticky', left: 0, zIndex: 20, padding: '14px 8px', fontSize: 11.5, fontWeight: 700, color: 'var(--sf-text-mute)', textAlign: 'center', borderRight: '1px solid var(--sf-border)', background: 'var(--sf-bg-surface)' }}>
+                  Time
                 </div>
-              ))}
-            </div>
+                {displayedFacilities.map(fac => (
+                  <div key={fac.id} style={{ padding: '12px 14px', borderRight: '1px solid var(--sf-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: fac.accentColor || 'var(--sf-violet)', flexShrink: 0 }} />
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fac.name}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--sf-text-mute)', marginTop: 2 }}>
+                      Cap: {fac.capacity} · £{fac.baseHourlyRate}/hr
+                    </div>
+                  </div>
+                ))}
+              </div>
 
             {/* Hour Rows */}
             <div style={{ position: 'relative' }}>
               {HOURS.map(hour => {
                 return (
-                  <div key={hour} style={{ display: 'grid', gridTemplateColumns: `80px repeat(${displayedFacilities.length}, minmax(180px, 1fr))`, minHeight: 64, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={hour} style={{ display: 'grid', gridTemplateColumns: `65px repeat(${displayedFacilities.length}, minmax(${displayedFacilities.length === 1 ? '1fr' : '150px'}, 1fr))`, minHeight: 64, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     {/* Hour Column */}
-                    <div style={{ padding: '8px 10px', fontSize: 11.5, fontFamily: 'var(--font-mono)', color: 'var(--sf-text-mute)', textAlign: 'center', borderRight: '1px solid var(--sf-border)', background: 'rgba(0,0,0,0.1)' }}>
+                    <div style={{ position: 'sticky', left: 0, zIndex: 15, padding: '8px 6px', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--sf-text-mute)', textAlign: 'center', borderRight: '1px solid var(--sf-border)', background: 'var(--sf-bg-surface)' }}>
                       {String(hour).padStart(2, '0')}:00
                     </div>
 
@@ -552,13 +578,14 @@ export default function AdminCalendarPage() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* ─── VIEW 2: WEEK VIEW ─── */}
       {viewMode === 'week' && (
         <div>
           {/* Weekly Summary Bar */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 18 }}>
+          <div className="cal-week-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 18 }}>
             {[
               {
                 label: 'Week Bookings',
@@ -589,7 +616,7 @@ export default function AdminCalendarPage() {
           </div>
 
           {/* 7 Days Columns */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(130px, 1fr))', gap: 10, overflowX: 'auto' }}>
+          <div className="cal-week-columns" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(130px, 1fr))', gap: 10, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {weekDays.map(day => {
               const dayBookings = relevantBookings.filter(b => b.date === day.dateKey);
 
@@ -680,96 +707,197 @@ export default function AdminCalendarPage() {
 
       {/* ─── VIEW 3: MONTH VIEW ─── */}
       {viewMode === 'month' && (
-        <div className="sf-card" style={{ padding: 14 }}>
-          {/* Day Names Header */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, textAlign: 'center', marginBottom: 8 }}>
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <div key={d} style={{ fontSize: 12, fontWeight: 700, color: 'var(--sf-text-mute)', textTransform: 'uppercase', padding: '6px 0' }}>
-                {d}
-              </div>
-            ))}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="sf-card" style={{ padding: 14 }}>
+            {/* Day Names Header */}
+            <div className="cal-month-header" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, textAlign: 'center', marginBottom: 8 }}>
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                <div key={d} style={{ fontSize: 12, fontWeight: 700, color: 'var(--sf-text-mute)', textTransform: 'uppercase', padding: '6px 0' }}>
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Grid Cells */}
+            <div className="cal-month-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+              {monthDays.map(cell => {
+                const dayBookings = relevantBookings.filter(b => b.date === cell.dateKey);
+                const isSelected = selectedMonthDate === cell.dateKey;
+
+                return (
+                  <div
+                    key={cell.dateKey}
+                    className="cal-month-cell"
+                    style={{
+                      minHeight: 105,
+                      background: isSelected
+                        ? 'rgba(124,58,237,0.18)'
+                        : cell.isToday
+                        ? 'rgba(124,58,237,0.08)'
+                        : (cell.currentMonth ? 'var(--sf-bg-surface)' : 'rgba(0,0,0,0.2)'),
+                      border: `1px solid ${isSelected ? 'var(--sf-violet)' : cell.isToday ? 'rgba(124,58,237,0.5)' : 'var(--sf-border)'}`,
+                      borderRadius: 'var(--r-md)',
+                      padding: '8px 8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      opacity: cell.currentMonth ? 1 : 0.45,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, background 0.15s'
+                    }}
+                    onClick={() => {
+                      setSelectedMonthDate(cell.dateKey);
+                      setCurrentDate(cell.date);
+                      if (window.innerWidth > 640) {
+                        setViewMode('day');
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span
+                        className="cal-month-cell-daynum"
+                        style={{
+                          fontSize: 12,
+                          fontWeight: (cell.isToday || isSelected) ? 800 : 600,
+                          width: 22,
+                          height: 22,
+                          borderRadius: '50%',
+                          background: isSelected ? 'var(--sf-violet)' : (cell.isToday ? 'rgba(124,58,237,0.6)' : 'transparent'),
+                          color: (cell.isToday || isSelected) ? '#fff' : 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {cell.dayNum}
+                      </span>
+                      {dayBookings.length > 0 && (
+                        <span style={{ fontSize: 10, color: 'var(--sf-text-mute)', fontWeight: 600 }}>
+                          {dayBookings.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Mobile Dot Indicators */}
+                    <div className="cal-month-dot-row">
+                      {dayBookings.slice(0, 3).map(b => (
+                        <span
+                          key={b.id}
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: b.isMaintenance ? '#94A3B8' : (STATUS_CONFIG[b.status]?.color || 'var(--sf-violet)')
+                          }}
+                        />
+                      ))}
+                      {dayBookings.length > 3 && (
+                        <span style={{ fontSize: 9, color: 'var(--sf-text-mute)', lineHeight: 1 }}>+</span>
+                      )}
+                    </div>
+
+                    {/* Desktop Booking Chips */}
+                    <div className="cal-month-event-chip" style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                      {dayBookings.slice(0, 3).map(b => (
+                        <div
+                          key={b.id}
+                          onClick={(e) => { e.stopPropagation(); setInspectBooking(b); }}
+                          style={{
+                            fontSize: 10,
+                            padding: '2px 5px',
+                            borderRadius: 3,
+                            background: b.isMaintenance ? 'rgba(148,163,184,0.25)' : (STATUS_CONFIG[b.status]?.bg || 'rgba(124,58,237,0.2)'),
+                            color: b.isMaintenance ? '#CBD5E1' : (STATUS_CONFIG[b.status]?.color || 'var(--sf-violet-lt)'),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontWeight: 500
+                          }}
+                          title={`${b.facilityName} - ${b.hirerName} (${b.eventType})`}
+                        >
+                          {String(b.startHour).padStart(2, '0')}:00 {b.facilityName.split(' ')[0]}
+                        </div>
+                      ))}
+                      {dayBookings.length > 3 && (
+                        <div style={{ fontSize: 9.5, color: 'var(--sf-text-mute)', textAlign: 'center' }}>
+                          +{dayBookings.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Calendar Grid Cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-            {monthDays.map(cell => {
-              const dayBookings = relevantBookings.filter(b => b.date === cell.dateKey);
+          {/* Mobile Day Agenda Panel (renders below month grid on small screens) */}
+          <div className="cal-month-agenda-mobile sf-card" style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--sf-text-mute)', textTransform: 'uppercase', fontWeight: 600 }}>Selected Day Schedule</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--sf-text)' }}>
+                  {parseDateKey(selectedMonthDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+              </div>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => handleSlotClick(selectedFacilityId !== 'all' ? selectedFacilityId : (facilities[0]?.id || ''), selectedMonthDate, 10)}
+                style={{ fontSize: 12, padding: '5px 10px', gap: 4 }}
+              >
+                <Plus size={13} /> Book Space
+              </button>
+            </div>
+
+            {(() => {
+              const selectedDateBookings = relevantBookings.filter(b => b.date === selectedMonthDate);
+              if (selectedDateBookings.length === 0) {
+                return (
+                  <div style={{ padding: '16px 12px', textAlign: 'center', background: 'var(--sf-bg-surface)', borderRadius: 'var(--r-md)', border: '1px dashed var(--sf-border)' }}>
+                    <CalendarIcon size={20} style={{ color: 'var(--sf-text-mute)', margin: '0 auto 6px', display: 'block' }} />
+                    <div style={{ fontSize: 12.5, color: 'var(--sf-text-sub)', fontWeight: 500 }}>No bookings scheduled for this date</div>
+                    <div style={{ fontSize: 11, color: 'var(--sf-text-mute)', marginTop: 2 }}>All facility slots are open for reservations</div>
+                  </div>
+                );
+              }
 
               return (
-                <div
-                  key={cell.dateKey}
-                  style={{
-                    minHeight: 105,
-                    background: cell.isToday ? 'rgba(124,58,237,0.08)' : (cell.currentMonth ? 'var(--sf-bg-surface)' : 'rgba(0,0,0,0.2)'),
-                    border: `1px solid ${cell.isToday ? 'var(--sf-violet)' : 'var(--sf-border)'}`,
-                    borderRadius: 'var(--r-md)',
-                    padding: '8px 8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    opacity: cell.currentMonth ? 1 : 0.45,
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s, background 0.15s'
-                  }}
-                  onClick={() => {
-                    setCurrentDate(cell.date);
-                    setViewMode('day');
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: cell.isToday ? 800 : 600,
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        background: cell.isToday ? 'var(--sf-violet)' : 'transparent',
-                        color: cell.isToday ? '#fff' : 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {cell.dayNum}
-                    </span>
-                    {dayBookings.length > 0 && (
-                      <span style={{ fontSize: 10, color: 'var(--sf-text-mute)', fontWeight: 600 }}>
-                        {dayBookings.length}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Booking Chips */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-                    {dayBookings.slice(0, 3).map(b => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {selectedDateBookings.map(b => {
+                    const ss = STATUS_CONFIG[b.status] || STATUS_CONFIG.confirmed;
+                    return (
                       <div
                         key={b.id}
-                        onClick={(e) => { e.stopPropagation(); setInspectBooking(b); }}
+                        onClick={() => setInspectBooking(b)}
                         style={{
-                          fontSize: 10,
-                          padding: '2px 5px',
-                          borderRadius: 3,
-                          background: b.isMaintenance ? 'rgba(148,163,184,0.25)' : (STATUS_CONFIG[b.status]?.bg || 'rgba(124,58,237,0.2)'),
-                          color: b.isMaintenance ? '#CBD5E1' : (STATUS_CONFIG[b.status]?.color || 'var(--sf-violet-lt)'),
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          fontWeight: 500
+                          background: b.isMaintenance ? STATUS_CONFIG.maintenance.bg : ss.bg,
+                          border: `1px solid ${b.isMaintenance ? STATUS_CONFIG.maintenance.border : ss.border}`,
+                          borderRadius: 'var(--r-md)',
+                          padding: '10px 12px',
+                          cursor: 'pointer'
                         }}
-                        title={`${b.facilityName} - ${b.hirerName} (${b.eventType})`}
                       >
-                        {String(b.startHour).padStart(2, '0')}:00 {b.facilityName.split(' ')[0]}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span className={`badge ${b.isMaintenance ? 'badge-gray' : ss.badge}`} style={{ fontSize: 10, padding: '1px 6px' }}>
+                            {b.isMaintenance ? 'Maintenance' : ss.label}
+                          </span>
+                          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--sf-text-mute)' }}>
+                            {String(b.startHour).padStart(2, '0')}:00 – {String(b.startHour + b.durationHours).padStart(2, '0')}:00 ({b.durationHours}h)
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--sf-text)', marginBottom: 2 }}>
+                          {b.facilityName} · {b.hirerName}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--sf-text-sub)' }}>
+                          <span>{b.eventType}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--sf-violet-lt)' }}>
+                            {b.totalAmount > 0 ? `£${b.totalAmount.toLocaleString()}` : 'Free'}
+                          </span>
+                        </div>
                       </div>
-                    ))}
-                    {dayBookings.length > 3 && (
-                      <div style={{ fontSize: 9.5, color: 'var(--sf-text-mute)', textAlign: 'center' }}>
-                        +{dayBookings.length - 3} more
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
               );
-            })}
+            })()}
           </div>
         </div>
       )}

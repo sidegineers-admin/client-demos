@@ -46,7 +46,7 @@ function MockScreen() {
   const booked = [9];
   const buffers = [8, 15]; // setup / teardown
   return (
-    <div className="mock-screen" style={{ width: 320, flexShrink: 0 }}>
+    <div className="mock-screen" style={{ width: '100%', maxWidth: 340, flexShrink: 0, margin: '0 auto' }}>
       <div className="mock-screen-bar">
         {['#EF4444','#F59E0B','#10B981'].map(c => <div key={c} className="mock-dot" style={{ background: c }} />)}
         <span style={{ fontSize: 11, color: 'var(--sf-text-mute)', marginLeft: 8 }}>space-flow.app/book</span>
@@ -149,7 +149,7 @@ export default function PresentationPage() {
         <div className="pres-hero-bg" />
         <div className="pres-hero-grid" />
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 60, alignItems: 'center' }}>
+          <div className="pres-hero-content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 60, alignItems: 'center' }}>
             <div>
               <div className="pres-hero-eyebrow">
                 <Zap size={12} /> Intelligent · Flexible · Beautiful
@@ -183,7 +183,7 @@ export default function PresentationPage() {
 
       {/* ─── STATS ─── */}
       <FadeSection>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
+        <div className="pres-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
           {STATS.map(s => (
             <div key={s.label} className="pres-stat">
               <div className="pres-stat-value" style={{ background: 'linear-gradient(135deg, #A78BFA, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>

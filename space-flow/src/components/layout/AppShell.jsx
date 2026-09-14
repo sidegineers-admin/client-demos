@@ -105,27 +105,30 @@ export default function AppShell() {
           </div>
 
           {/* Quick Actions in Top Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Admin Quick Direct Booking */}
             {isAdmin && (
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm btn-direct-booking"
                 onClick={() => setDirectBookingOpen(true)}
                 style={{ padding: '6px 14px', fontSize: 13, gap: 6 }}
               >
-                <Plus size={14} /> Direct Booking
+                <Plus size={14} />
+                <span className="btn-label-long">Direct Booking</span>
+                <span className="btn-label-short">Direct</span>
               </button>
             )}
 
             {/* Quick Role Switcher for Demo evaluation */}
             <button
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm btn-role-switcher"
               onClick={() => switchRole(isAdmin ? 'hirer' : 'admin')}
               style={{ padding: '6px 12px', fontSize: 12, gap: 6 }}
               title={isAdmin ? 'View app as a Hirer' : 'Switch to Admin View'}
             >
               <ArrowRightLeft size={13} />
-              {isAdmin ? 'Preview Hirer Portal' : 'Admin Console'}
+              <span className="btn-label-long">{isAdmin ? 'Preview Hirer Portal' : 'Admin Console'}</span>
+              <span className="btn-label-short">{isAdmin ? 'Hirer' : 'Admin'}</span>
             </button>
 
             {/* Dark / Light Mode Toggle */}
@@ -169,10 +172,10 @@ export default function AppShell() {
 
             {/* Account & Logout */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--sf-border)' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: isAdmin ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : 'var(--sf-violet-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: isAdmin ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : 'var(--sf-violet-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {session.name?.[0]?.toUpperCase()}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="user-details-text" style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--sf-text)' }}>{session.name}</span>
                 <span style={{ fontSize: 10.5, color: 'var(--sf-text-mute)' }}>{session.role}</span>
               </div>
@@ -184,7 +187,7 @@ export default function AppShell() {
         </div>
 
         {/* Dedicated Navigation Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', borderTop: '1px solid var(--sf-border)', background: isAdmin ? 'rgba(245,158,11,0.03)' : 'transparent' }}>
+        <div className="sf-nav-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', borderTop: '1px solid var(--sf-border)', background: isAdmin ? 'rgba(245,158,11,0.03)' : 'transparent' }}>
           <nav className="sf-nav" style={{ padding: 0 }}>
             {navItems.map(item => {
               const isActive = path.startsWith(item.path);
