@@ -1,0 +1,57 @@
+name: Deploy Client Demos to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Build Sports Center
+        working-directory: sports-center
+        run: |
+          pnpm install
+          pnpm run build
+
+      - name: Build Space-Flow
+        working-directory: space-flow
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble Unified Deployment
+        run: |
+          mkdir -p dist-deploy
+          # Deploy Sports Center to /sports-center/
+          mkdir -p dist-deploy/sports-center
+          cp -r sports-center/dist/* dist-deploy/sports-center/
+          # Deploy Space-Flow to /space-flow/
+          mkdir -p dist-deploy/space-flow
+          cp -r space-flow/dist/* dist-deploy/space-flow/
+          # Deploy Portal Landing Hub to root /
+          cp portal/index.html dist-deploy/index.html
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist-deploy
